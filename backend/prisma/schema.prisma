@@ -1,0 +1,63 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  name      String?
+  createdAt DateTime @default(now())
+  
+  groupsOwned Group[] @relation("GroupOwner")
+}
+
+model Group {
+  id        Int      @id @default(autoincrement())
+  name      String
+  ownerId   Int
+  owner     User     @relation("GroupOwner", fields: [ownerId], references: [id])
+  createdAt DateTime @default(now())
+  
+  participants Participant[]
+  expenses     Expense[]
+}
+
+model Participant {
+  id        Int      @id @default(autoincrement())
+  name      String
+  color     String?
+  groupId   Int
+  group     Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  
+  expenseSplits ExpenseSplit[]
+  expensesPaid  Expense[]      @relation("ExpensePayer")
+}
+
+model Expense {
+  id          Int      @id @default(autoincrement())
+  amount      Float
+  description String
+  date        DateTime @default(now())
+  payerId     Int
+  payer       Participant @relation("ExpensePayer", fields: [payerId], references: [id])
+  groupId     Int
+  group       Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  splitType   String   // "equal", "custom", "percentage"
+  
+  splits      ExpenseSplit[]
+}
+
+model ExpenseSplit {
+  id            Int      @id @default(autoincrement())
+  expenseId     Int
+  expense       Expense  @relation(fields: [expenseId], references: [id], onDelete: Cascade)
+  participantId Int
+  participant   Participant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  amount        Float
+}
